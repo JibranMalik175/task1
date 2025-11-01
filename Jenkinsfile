@@ -1,13 +1,22 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush() // Automatically triggered by GitHub Webhook
+    }
+
+    environment {
+        APP_NAME = "nodeapp"
+        DEPLOY_DIR = "C:\\pm2deploy\\nodeapp" // Change this if needed
+    }
+
     stages {
         stage('Build Info') {
             steps {
                 script {
-                    def triggerCause = currentBuild.getBuildCauses()?.toString()
-                    echo "Build #${env.BUILD_NUMBER} started at ${new Date()}"
-                    if (triggerCause?.contains("GitHub")) {
+                    echo "🚀 Build #${env.BUILD_NUMBER} started at ${new Date()}"
+                    def causes = currentBuild.rawBuild.getCauses()
+                    if (causes.toString().contains("GitHub")) {
                         echo "Triggered by GitHub Webhook"
                     } else {
                         echo "Manually triggered build"
@@ -28,28 +37,43 @@ pipeline {
             }
         }
 
-        stage('Lint and Test') {
+        stage('Test') {
             steps {
-                bat 'echo "Linting passed successfully!"'
                 bat 'npm test || echo "No tests found"'
             }
         }
 
-        stage('Archive Build Artifact') {
+        stage('Build & Package') {
             steps {
                 bat 'tar -a -c -f build-output.zip *'
                 archiveArtifacts artifacts: 'build-output.zip', fingerprint: true
+            }
+        }
+
+        stage('Deploy with PM2') {
+            steps {
+                script {
+                    echo "🛠️ Deploying app using PM2..."
+                    // Ensure deployment directory exists
+                    bat """
+                    if not exist "%DEPLOY_DIR%" mkdir "%DEPLOY_DIR%"
+                    xcopy * "%DEPLOY_DIR%" /E /Y
+                    cd "%DEPLOY_DIR%"
+                    pm2 delete %APP_NAME% || echo "No previous instance found"
+                    pm2 start server.js --name %APP_NAME%
+                    pm2 save
+                    """
+                }
             }
         }
     }
 
     post {
         success {
-            echo "✅ Build completed successfully at ${new Date()}"
-            echo "📧 Email sent to team@example.com (simulated)"
+            echo "✅ Deployment completed successfully at ${new Date()}"
         }
         failure {
-            echo "❌ Build failed at ${new Date()}"
+            echo "❌ Deployment failed! Check Jenkins logs for errors."
         }
     }
 }
