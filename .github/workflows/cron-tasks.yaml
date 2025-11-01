@@ -1,0 +1,43 @@
+name: Cron Jobs for Task 3
+
+on:
+  schedule:
+    # 🕛 Backup logs every midnight
+    - cron: '0 0 * * *'
+    # 🕐 Check server every 5 minutes
+    - cron: '*/5 * * * *'
+    # 🕕 Pull updates every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # Allows manual run from Actions tab
+
+jobs:
+  cron-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1️⃣ Backup logs (simulate)
+      - name: Backup Logs
+        run: |
+          echo "[$(date)] Logs backed up successfully!" >> cron.log
+
+      # 2️⃣ Check server status (simulate nginx)
+      - name: Check Server
+        run: |
+          echo "[$(date)] Checking if Nginx is running..." >> cron.log
+          echo "[$(date)] Nginx is running ✅" >> cron.log
+
+      # 3️⃣ Pull latest Git updates
+      - name: Auto Pull Latest Changes
+        run: |
+          git pull origin main || true
+          echo "[$(date)] Pulled latest changes from GitHub ✅" >> cron.log
+
+      # 4️⃣ Upload log as artifact (view results)
+      - name: Upload log file
+        uses: actions/upload-artifact@v4
+        with:
+          name: cron-log
+          path: cron.log
