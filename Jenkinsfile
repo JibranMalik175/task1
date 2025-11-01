@@ -5,9 +5,9 @@ pipeline {
         stage('Build Info') {
             steps {
                 script {
-                    def causes = currentBuild.rawBuild.getCauses()
+                    def triggerCause = currentBuild.getBuildCauses()?.toString()
                     echo "Build #${env.BUILD_NUMBER} started at ${new Date()}"
-                    if (causes.toString().contains("GitHub")) {
+                    if (triggerCause?.contains("GitHub")) {
                         echo "Triggered by GitHub Webhook"
                     } else {
                         echo "Manually triggered build"
